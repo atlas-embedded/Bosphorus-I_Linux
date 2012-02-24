@@ -498,9 +498,11 @@ void __init da8xx_register_mcasp(int id, struct snd_platform_data *pdata)
 	if (cpu_is_davinci_da830() && id == 1) {
 		da830_mcasp1_device.dev.platform_data = pdata;
 		platform_device_register(&da830_mcasp1_device);
-	} else if (cpu_is_davinci_da850()) {
+	// } else if (cpu_is_davinci_da850()) {
+	} else {	// Bosphorus-I default
 		da850_mcasp_device.dev.platform_data = pdata;
 		platform_device_register(&da850_mcasp_device);
+		pr_info("BosphorusI_init: Sound Codec is registered\n");
 	}
 }
 
@@ -526,8 +528,8 @@ static struct lcd_ctrl_config lcd_cfg = {
 	.sync_edge		= 0,
 	.sync_ctrl		= 1,
 	.raster_order		= 0,
-	.fifo_th		= 6,
 };
+
 
 struct da8xx_lcdc_platform_data sharp_lcd035q3dg01_pdata = {
 	.manu_name		= "sharp",
@@ -539,6 +541,11 @@ struct da8xx_lcdc_platform_data sharp_lk043t1dg01_pdata = {
 	.manu_name		= "sharp",
 	.controller_data	= &lcd_cfg,
 	.type			= "Sharp_LK043T1DG01",
+};
+struct da8xx_lcdc_platform_data vga_monitor_pdata = {
+	.manu_name		= "vga_mon",
+	.controller_data	= &lcd_cfg,
+	.type			= "VGA_Monitor",
 };
 
 #if !defined(CONFIG_FB_DA8XX) && !defined(CONFIG_FB_DA8XX_MODULE)

@@ -984,6 +984,7 @@ static struct snd_info_entry *snd_info_version_entry;
 
 static void snd_info_version_read(struct snd_info_entry *entry, struct snd_info_buffer *buffer)
 {
+		printk(KERN_INFO "Bosphorus-I --> /sound/core/info.c, 02 \n");
 	snd_iprintf(buffer,
 		    "Advanced Linux Sound Architecture Driver Version "
 		    CONFIG_SND_VERSION CONFIG_SND_DATE ".\n"
@@ -993,6 +994,7 @@ static void snd_info_version_read(struct snd_info_entry *entry, struct snd_info_
 static int __init snd_info_version_init(void)
 {
 	struct snd_info_entry *entry;
+	printk(KERN_INFO "Bosphorus-I --> /sound/core/info.c, 01 \n");
 
 	entry = snd_info_create_module_entry(THIS_MODULE, "version", NULL);
 	if (entry == NULL)

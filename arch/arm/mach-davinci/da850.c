@@ -478,8 +478,7 @@ static struct clk_lookup da850_clks[] = {
 /*
  * Device specific mux setup
  *
- *		soc	description	mux	mode	mode	mux	dbg
- *					reg	offset	mask	mode
+ *		soc	description	mux	mode	mode	mux	dbg  reg	offset	mask	mode
  */
 static const struct mux_config da850_pins[] = {
 #ifdef CONFIG_DAVINCI_MUX
@@ -630,7 +629,7 @@ static const struct mux_config da850_pins[] = {
 	MUX_CFG(DA850, EMA_WAIT_1,	6,	24,	15,	1,	false)
 	MUX_CFG(DA850, NEMA_CS_2,	7,	0,	15,	1,	false)
 	/* GPIO function */
-	MUX_CFG(DA850, GPIO2_4,         6,      12,     15,     8,      false)
+	MUX_CFG(DA850, GPIO2_4,     6, 12,  15, 8,      false)
 	MUX_CFG(DA850, GPIO2_6,		6,	4,	15,	8,	false)
 	MUX_CFG(DA850, GPIO2_8,		5,	28,	15,	8,	false)
 	MUX_CFG(DA850, GPIO2_15,	5,	0,	15,	8,	false)
@@ -639,9 +638,10 @@ static const struct mux_config da850_pins[] = {
 	MUX_CFG(DA850, GPIO1_4,		4,	12,	15,	8,	false)
 	MUX_CFG(DA850, GPIO1_5,		4,	8,	15,	8,	false)
 	MUX_CFG(DA850, GPIO0_11,	0,	16,	15,	8,	false)
-	MUX_CFG(DA850, GPIO6_13,        13,     8,      15,     8,      false)
+	MUX_CFG(DA850, GPIO6_12,   13,  12, 15, 8,  false)	
+	MUX_CFG(DA850, GPIO6_13,   13,   8, 15, 8,  false)
 	MUX_CFG(DA850, RTC_ALARM,	0,	28,	15,	2,	false)
-	MUX_CFG(DA850, GPIO7_4,         17,     20,     15,     8,      false)
+	MUX_CFG(DA850, GPIO7_4,    17,     20,     15,     8,      false)
 	/* McBSP0 function */
 	MUX_CFG(DA850,	MCBSP0_CLKR,	2,	4,	15,	2,	false)
 	MUX_CFG(DA850,	MCBSP0_CLKX,	2,	8,	15,	2,	false)
@@ -735,6 +735,7 @@ const short da850_uart2_pins[] __initdata = {
 
 const short da850_i2c0_pins[] __initdata = {
 	DA850_GPIO1_4, DA850_GPIO1_5,
+	// DA850_I2C0_SCL, DA850_I2C0_SDA,     // Bosphorus-I use I2C0 mode not as GPIO	
 	-1
 };
 

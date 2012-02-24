@@ -34,6 +34,14 @@
 
 #define AUDIO_FORMAT (SND_SOC_DAIFMT_DSP_B | \
 		SND_SOC_DAIFMT_CBM_CFM | SND_SOC_DAIFMT_IB_NF)
+	
+
+#ifdef CONFIG_SND_DA850_SOC_BOSPHORUSI	
+#define BOSPHORUSI_AUDIO_CODEC 1
+#else
+#define BOSPHORUSI_AUDIO_CODEC 0
+#endif
+
 static int evm_hw_params(struct snd_pcm_substream *substream,
 			 struct snd_pcm_hw_params *params)
 {
@@ -55,8 +63,8 @@ static int evm_hw_params(struct snd_pcm_substream *substream,
 	else if (machine_is_davinci_evm())
 		sysclk = 12288000;
 
-	else if (machine_is_davinci_da830_evm() ||
-				machine_is_davinci_da850_evm())
+	// else if (machine_is_davinci_da830_evm() || machine_is_davinci_da850_evm())
+	else if (BOSPHORUSI_AUDIO_CODEC)
 		sysclk = 24576000;
 
 	else
@@ -132,7 +140,6 @@ static const struct snd_soc_dapm_route audio_map[] = {
 static int evm_aic3x_init(struct snd_soc_pcm_runtime *rtd)
 {
 	struct snd_soc_codec *codec = rtd->codec;
-
 	/* Add davinci-evm specific widgets */
 	snd_soc_dapm_new_controls(codec, aic3x_dapm_widgets,
 				  ARRAY_SIZE(aic3x_dapm_widgets));
@@ -263,9 +270,15 @@ static struct snd_soc_card da830_snd_soc_card = {
 	.dai_link = &da8xx_evm_dai,
 	.num_links = 1,
 };
-
+/*
 static struct snd_soc_card da850_snd_soc_card = {
 	.name = "DA850/OMAP-L138 EVM",
+	.dai_link = &da8xx_evm_dai,
+	.num_links = 1,
+};
+*/
+static struct snd_soc_card da850_snd_soc_card = {
+	.name = "BOSPHORUS-I -> TLV320AIC3106 Stereo Codec",
 	.dai_link = &da8xx_evm_dai,
 	.num_links = 1,
 };
@@ -293,7 +306,8 @@ static int __init evm_init(void)
 	} else if (machine_is_davinci_da830_evm()) {
 		evm_snd_dev_data = &da830_snd_soc_card;
 		index = 1;
-	} else if (machine_is_davinci_da850_evm()) {
+	// } else if (machine_is_davinci_da850_evm()) {
+	} else if (BOSPHORUSI_AUDIO_CODEC) {
 		evm_snd_dev_data = &da850_snd_soc_card;
 		index = 0;
 	} else

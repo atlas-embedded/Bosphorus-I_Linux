@@ -149,7 +149,10 @@ static struct fb_var_screeninfo da8xx_fb_var __devinitdata = {
 	.height = -1,
 	.width = -1,
 	.pixclock = 126667,	/* 126us - AUO display */
-	.accel_flags = 0,
+	//.pixclock = 40000,
+        //.pixclock = 39722,
+        //.pixclock = 25000000,
+        .accel_flags = 0,
 	.left_margin = LEFT_MARGIN,
 	.right_margin = RIGHT_MARGIN,
 	.upper_margin = UPPER_MARGIN,
@@ -163,9 +166,9 @@ static struct fb_fix_screeninfo da8xx_fb_fix __devinitdata = {
 	.type = FB_TYPE_PACKED_PIXELS,
 	.type_aux = 0,
 	.visual = FB_VISUAL_PSEUDOCOLOR,
-	.xpanstep = 0,
+	.xpanstep = 1, //default 0
 	.ypanstep = 1,
-	.ywrapstep = 0,
+	.ywrapstep = 1, //default 0
 	.accel = FB_ACCEL_NONE
 };
 
@@ -212,6 +215,34 @@ static struct da8xx_panel known_lcd_panels[] = {
 		.pxl_clk = 7833600,
 		.invert_pxl_clk = 0,
 	},
+        [2] = {
+              #ifdef CONFIG_BOSP_VGA_640_480
+               // 640x480 is tested and correct. 60Hz.
+	        .name = "VGA_Monitor",
+		.width = 640,
+		.height = 480,
+		.hfp = 48,
+		.hbp = 48,
+		.hsw = 63,
+		.vfp = 11,
+		.vbp = 31,
+		.vsw = 1,
+		.pxl_clk = 25000000,
+		.invert_pxl_clk = 1,
+              #else
+                .name = "VGA_Monitor",
+		.width = 800,
+		.height = 600,
+		.hfp = 24,
+		.hbp = 128,
+		.hsw = 72,
+		.vfp = 1,
+		.vbp = 22,
+		.vsw = 2,
+		.pxl_clk = 38000000,
+		.invert_pxl_clk = 1,
+               #endif
+               },
 };
 
 /* Enable the Raster Engine of the LCD Controller */

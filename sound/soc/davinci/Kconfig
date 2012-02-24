@@ -77,10 +77,19 @@ config  SND_DA830_SOC_EVM
 
 config  SND_DA850_SOC_EVM
 	tristate "SoC Audio support for DA850/OMAP-L138/AM18xx EVM"
-	depends on SND_DAVINCI_SOC && MACH_DAVINCI_DA850_EVM
+	depends on SND_DAVINCI_SOC && MACH_DAVINCI_DA850_EVM 
 	select SND_DAVINCI_SOC_MCASP
 	select SND_SOC_TLV320AIC3X
 	help
 	  Say Y if you want to add support for SoC audio on TI
 	  DA850/OMAP-L138/AM18xx EVM
+
+config  SND_DA850_SOC_BOSPHORUSI
+	tristate "SoC Audio support for Bosphorus-I Computer On Modules"
+	depends on SND_DAVINCI_SOC && MACH_BOSPHORUS1
+	select SND_DAVINCI_SOC_MCASP
+	select SND_SOC_TLV320AIC3X
+	help
+	  Say Y if you want to add support for SoC audio on Atlas Embedded Systems
+	  Bosphorus-I CoM
 

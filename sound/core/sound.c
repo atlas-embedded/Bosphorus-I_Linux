@@ -449,17 +449,22 @@ static int __init alsa_sound_init(void)
 {
 	snd_major = major;
 	snd_ecards_limit = cards_limit;
+	printk(KERN_INFO "Bosphorus-I --> /sound/core/sound.c, 01 \n");
 	if (register_chrdev(major, "alsa", &snd_fops)) {
 		snd_printk(KERN_ERR "unable to register native major device number %d\n", major);
+		printk(KERN_INFO "Bosphorus-I --> /sound/core/sound.c, 02 \n");
 		return -EIO;
 	}
 	if (snd_info_init() < 0) {
 		unregister_chrdev(major, "alsa");
+		printk(KERN_INFO "Bosphorus-I --> /sound/core/sound.c, 03 \n");
 		return -ENOMEM;
 	}
 	snd_info_minor_register();
+		printk(KERN_INFO "Bosphorus-I --> /sound/core/sound.c, 04 \n");
 #ifndef MODULE
 	printk(KERN_INFO "Advanced Linux Sound Architecture Driver Version " CONFIG_SND_VERSION CONFIG_SND_DATE ".\n");
+	printk(KERN_INFO "Bosphorus-I --> /sound/core/sound.c, 05 \n");
 #endif
 	return 0;
 }

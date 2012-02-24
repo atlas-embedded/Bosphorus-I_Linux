@@ -1372,6 +1372,7 @@ static void rtd_release(struct device *dev) {}
 
 static int soc_probe_dai_link(struct snd_soc_card *card, int num)
 {
+	
 	struct snd_soc_dai_link *dai_link = &card->dai_link[num];
 	struct snd_soc_pcm_runtime *rtd = &card->rtd[num];
 	struct snd_soc_codec *codec = rtd->codec;
@@ -1662,7 +1663,6 @@ static int soc_probe(struct platform_device *pdev)
 {
 	struct snd_soc_card *card = platform_get_drvdata(pdev);
 	int ret = 0;
-
 	/* Bodge while we unpick instantiation */
 	card->dev = &pdev->dev;
 	INIT_LIST_HEAD(&card->dai_dev_list);
@@ -3333,7 +3333,6 @@ static int __init snd_soc_init(void)
 				 &platform_list_fops))
 		pr_warn("ASoC: Failed to create platform list debugfs file\n");
 #endif
-
 	return platform_driver_register(&soc_driver);
 }
 module_init(snd_soc_init);
