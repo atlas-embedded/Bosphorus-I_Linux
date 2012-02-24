@@ -26,6 +26,7 @@
 #include <linux/input.h>
 #include <linux/interrupt.h>
 #include <linux/slab.h>
+#include <linux/pm.h>
 #include <linux/gpio.h>
 #include <linux/spi/spi.h>
 #include <linux/spi/ads7846.h>
@@ -280,17 +281,24 @@ struct ser_req {
 	u8			command;
 	u8			ref_off;
 	u16			scratch;
-	__be16			sample;
 	struct spi_message	msg;
 	struct spi_transfer	xfer[6];
+	/*
+	 * DMA (thus cache coherency maintenance) requires the
+	 * transfer buffers to live in their own cache lines.
+	 */
+	__be16 sample ____cacheline_aligned;
 };
 
 struct ads7845_ser_req {
 	u8			command[3];
-	u8			pwrdown[3];
-	u8			sample[3];
 	struct spi_message	msg;
 	struct spi_transfer	xfer[2];
+	/*
+	 * DMA (thus cache coherency maintenance) requires the
+	 * transfer buffers to live in their own cache lines.
+	 */
+	u8 sample[3] ____cacheline_aligned;
 };
 
 static int ads7846_read12_ser(struct device *dev, unsigned command)
@@ -892,9 +900,10 @@ static irqreturn_t ads7846_irq(int irq, void *handle)
 	return IRQ_HANDLED;
 }
 
-static int ads7846_suspend(struct spi_device *spi, pm_message_t message)
+#ifdef CONFIG_PM_SLEEP
+static int ads7846_suspend(struct device *dev)
 {
-	struct ads7846 *ts = dev_get_drvdata(&spi->dev);
+	struct ads7846 *ts = dev_get_drvdata(dev);
 
 	mutex_lock(&ts->lock);
 
@@ -914,9 +923,9 @@ static int ads7846_suspend(struct spi_device *spi, pm_message_t message)
 	return 0;
 }
 
-static int ads7846_resume(struct spi_device *spi)
+static int ads7846_resume(struct device *dev)
 {
-	struct ads7846 *ts = dev_get_drvdata(&spi->dev);
+	struct ads7846 *ts = dev_get_drvdata(dev);
 
 	mutex_lock(&ts->lock);
 
@@ -935,34 +944,38 @@ static int ads7846_resume(struct spi_device *spi)
 
 	return 0;
 }
+#endif
+
+static SIMPLE_DEV_PM_OPS(ads7846_pm, ads7846_suspend, ads7846_resume);
 
 static int __devinit ads7846_setup_pendown(struct spi_device *spi, struct ads7846 *ts)
 {
 	struct ads7846_platform_data *pdata = spi->dev.platform_data;
 	int err;
 
-	/* REVISIT when the irq can be triggered active-low, or if for some
+	/*
+	 * REVISIT when the irq can be triggered active-low, or if for some
 	 * reason the touchscreen isn't hooked up, we don't need to access
 	 * the pendown state.
 	 */
-	if (!pdata->get_pendown_state && !gpio_is_valid(pdata->gpio_pendown)) {
-		dev_err(&spi->dev, "no get_pendown_state nor gpio_pendown?\n");
-		return -EINVAL;
-	}
 
 	if (pdata->get_pendown_state) {
 		ts->get_pendown_state = pdata->get_pendown_state;
-		return 0;
-	}
+	} else if (gpio_is_valid(pdata->gpio_pendown)) {
 
-	err = gpio_request(pdata->gpio_pendown, "ads7846_pendown");
-	if (err) {
-		dev_err(&spi->dev, "failed to request pendown GPIO%d\n",
-			pdata->gpio_pendown);
-		return err;
-	}
+		err = gpio_request(pdata->gpio_pendown, "ads7846_pendown");
+		if (err) {
+			dev_err(&spi->dev, "failed to request pendown GPIO%d\n",
+				pdata->gpio_pendown);
+			return err;
+		}
 
-	ts->gpio_pendown = pdata->gpio_pendown;
+		ts->gpio_pendown = pdata->gpio_pendown;
+
+	} else {
+		dev_err(&spi->dev, "no get_pendown_state nor gpio_pendown?\n");
+		return -EINVAL;
+	}
 
 	return 0;
 }
@@ -997,6 +1010,7 @@ static void __devinit ads7846_setup_spi_msg(struct ads7846 *ts,
 		packet->read_y_cmd[0] = READ_Y(vref);
 		packet->read_y_cmd[1] = 0;
 		packet->read_y_cmd[2] = 0;
+
 		x->tx_buf = &packet->read_y_cmd[0];
 		x->rx_buf = &packet->tc.y_buf[0];
 		x->len = 3;
@@ -1004,6 +1018,7 @@ static void __devinit ads7846_setup_spi_msg(struct ads7846 *ts,
 	} else {
 		/* y- still on; turn on only y+ (and ADC) */
 		packet->read_y = READ_Y(vref);
+
 		x->tx_buf = &packet->read_y;
 		x->len = 1;
 		spi_message_add_tail(x, m);
@@ -1021,36 +1036,44 @@ static void __devinit ads7846_setup_spi_msg(struct ads7846 *ts,
 	 */
 	if (pdata->settle_delay_usecs) {
 		x->delay_usecs = pdata->settle_delay_usecs;
-
 		x++;
-		x->tx_buf = &packet->read_y;
-		x->len = 1;
-		spi_message_add_tail(x, m);
 
-		x++;
-		x->rx_buf = &packet->tc.y;
-		x->len = 2;
-		spi_message_add_tail(x, m);
+		if (ts->model == 7845) {
+			x->tx_buf = &packet->read_y_cmd[0];
+			x->rx_buf = &packet->tc.y_buf[0];
+			x->len = 3;
+			spi_message_add_tail(x, m);
+		} else {
+			x->tx_buf = &packet->read_y;
+			x->len = 1;
+			spi_message_add_tail(x, m);
+
+			x++;
+			x->rx_buf = &packet->tc.y;
+			x->len = 2;
+			spi_message_add_tail(x, m);
+		}
 	}
 
 	ts->msg_count++;
 	m++;
 	spi_message_init(m);
 	m->context = ts;
+	x++;
 
 	if (ts->model == 7845) {
-		x++;
 		packet->read_x_cmd[0] = READ_X(vref);
 		packet->read_x_cmd[1] = 0;
 		packet->read_x_cmd[2] = 0;
+
 		x->tx_buf = &packet->read_x_cmd[0];
 		x->rx_buf = &packet->tc.x_buf[0];
 		x->len = 3;
 		spi_message_add_tail(x, m);
 	} else {
 		/* turn y- off, x+ on, then leave in lowpower */
-		x++;
 		packet->read_x = READ_X(vref);
+
 		x->tx_buf = &packet->read_x;
 		x->len = 1;
 		spi_message_add_tail(x, m);
@@ -1064,16 +1087,23 @@ static void __devinit ads7846_setup_spi_msg(struct ads7846 *ts,
 	/* ... maybe discard first sample ... */
 	if (pdata->settle_delay_usecs) {
 		x->delay_usecs = pdata->settle_delay_usecs;
-
 		x++;
-		x->tx_buf = &packet->read_x;
-		x->len = 1;
-		spi_message_add_tail(x, m);
 
-		x++;
-		x->rx_buf = &packet->tc.x;
-		x->len = 2;
-		spi_message_add_tail(x, m);
+		if (ts->model == 7845) {
+			x->tx_buf = &packet->read_x_cmd[0];
+			x->rx_buf = &packet->tc.x_buf[0];
+			x->len = 3;
+			spi_message_add_tail(x, m);
+		} else {
+			x->tx_buf = &packet->read_x;
+			x->len = 1;
+			spi_message_add_tail(x, m);
+
+			x++;
+			x->rx_buf = &packet->tc.x;
+			x->len = 2;
+			spi_message_add_tail(x, m);
+		}
 	}
 
 	/* turn y+ off, x- on; we'll use formula #2 */
@@ -1353,7 +1383,7 @@ static int __devinit ads7846_probe(struct spi_device *spi)
  err_put_regulator:
 	regulator_put(ts->reg);
  err_free_gpio:
-	if (ts->gpio_pendown != -1)
+	if (!ts->get_pendown_state)
 		gpio_free(ts->gpio_pendown);
  err_cleanup_filter:
 	if (ts->filter_cleanup)
@@ -1383,8 +1413,13 @@ static int __devexit ads7846_remove(struct spi_device *spi)
 	regulator_disable(ts->reg);
 	regulator_put(ts->reg);
 
-	if (ts->gpio_pendown != -1)
+	if (!ts->get_pendown_state) {
+		/*
+		 * If we are not using specialized pendown method we must
+		 * have been relying on gpio we set up ourselves.
+		 */
 		gpio_free(ts->gpio_pendown);
+	}
 
 	if (ts->filter_cleanup)
 		ts->filter_cleanup(ts->filter_data);
@@ -1402,11 +1437,10 @@ static struct spi_driver ads7846_driver = {
 		.name	= "ads7846",
 		.bus	= &spi_bus_type,
 		.owner	= THIS_MODULE,
+		.pm	= &ads7846_pm,
 	},
 	.probe		= ads7846_probe,
 	.remove		= __devexit_p(ads7846_remove),
-	.suspend	= ads7846_suspend,
-	.resume		= ads7846_resume,
 };
 
 static int __init ads7846_init(void)

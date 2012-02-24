@@ -919,11 +919,13 @@ enum davinci_da850_index {
 	DA850_GPIO4_1,
 	DA850_GPIO1_4,
 	DA850_GPIO1_5,
+	DA850_GPIO1_12,
 	DA850_GPIO0_11,
 	DA850_GPIO6_12,
 	DA850_GPIO6_13,
 	DA850_RTC_ALARM,
 	DA850_GPIO7_4,
+	DA850_GPIO0_13,
 
 	/* McBSP0 function */
 	DA850_MCBSP0_CLKR,
@@ -999,6 +1001,8 @@ enum davinci_da850_index {
 	DA850_ECAP0_APWM0,
 	DA850_ECAP1_APWM1,
 	DA850_ECAP2_APWM2,
+	/* SPI1 */
+	DA850_SPI1_CS1,
 };
 
 enum davinci_tnetv107x_index {

@@ -53,15 +53,17 @@
 #include <media/davinci/videohd.h>
 
 #include <media/tvp514x.h>
+#include <linux/spi/ads7846.h>
 
 #define BOSPHORUSI_PHY_ID		"0:00"
 // LCD GPIO signals
 #define DA850_LCD_PWR_PIN		GPIO_TO_PIN(2, 8)
-#define DA850_LCD_BL_PIN		GPIO_TO_PIN(2, 15)
+#define DA850_LCD_BL_PIN		GPIO_TO_PIN(1, 12)
 // MMCSD GPIO signals
 #define DA850_MMCSD_CD_PIN		GPIO_TO_PIN(4, 0)
 #define DA850_MMCSD_WP_PIN		GPIO_TO_PIN(4, 1) // for SD CARD 
 
+#define TS_PEN_PIN              	GPIO_TO_PIN(0, 13) //PEN IRQ PIN
 
 
 #ifdef CONFIG_BOSP_MICROSD_WP_SUPPORT
@@ -103,7 +105,7 @@ static struct platform_device bosphorusI_backlight = {
 // SPI NOR FLASH
 static struct davinci_spi_platform_data bosphorusI_spi1_pdata = {
 	.version		= SPI_VERSION_2,
-	.num_chipselect = 1,
+	.num_chipselect = 2,
 	.intr_line      = 1,
 };
 
@@ -158,8 +160,34 @@ static struct davinci_spi_config bosphorusI_spiflash_cfg = {
 	.t2cdelay	= 8,
 };
 
-static struct spi_board_info bosphorusI_spi_info[] = {
-	{
+static struct davinci_spi_config spi_ts_config = {
+         .io_type        = SPI_IO_TYPE_DMA,
+         .c2tdelay       = 8,
+         .t2cdelay       = 8,
+};
+
+static int ads7846_get_pendown_state(void) {
+        return !gpio_get_value(TS_PEN_PIN);
+}
+
+static struct ads7846_platform_data ts_pdata = {
+	.x_max                  = 0x0fff,
+        .y_max                  = 0x0fff,
+        .x_plate_ohms           = 100,
+        .pressure_max           = 255,
+        .debounce_max           = 30,
+        .debounce_tol           = 10,
+        .debounce_rep           = 1,
+        .get_pendown_state      = ads7846_get_pendown_state,
+        .keep_vref_on           = 1,
+        .vref_mv                = 2500,        
+        .settle_delay_usecs     = 100,
+        .gpio_pendown           = TS_PEN_PIN,
+        .wakeup                 = true,
+};
+
+static struct spi_board_info bosphorusI_spi1_info[] = {
+	[0]={
 		.modalias		= "m25p80",
 		.platform_data		= &bosphorusI_spiflash_data,
 		.controller_data	= &bosphorusI_spiflash_cfg,
@@ -167,7 +195,16 @@ static struct spi_board_info bosphorusI_spi_info[] = {
 		.max_speed_hz		= 30000000,
 		.bus_num		= 1,
 		.chip_select		= 0,
-	},
+	      },
+	[1]={
+                .modalias               = "ads7846",
+                .platform_data          = &ts_pdata,
+                .controller_data        = &spi_ts_config,
+                .mode                   = SPI_MODE_0,
+                .max_speed_hz           = 1000000,
+                .bus_num                = 1,
+                .chip_select            = 1,
+	      },
 };
 
 static void m25p80_notify_add(struct mtd_info *mtd)
@@ -190,7 +227,15 @@ static struct mtd_notifier spi_notifier = {
 static void __init bosphorusI_init_spi1(struct spi_board_info *info, unsigned len)
 {
 	int ret;
-
+	if (gpio_request(TS_PEN_PIN, "TSC2046 pendown") < 0) {
+                printk(KERN_ERR "can't get TSC2046 pen down GPIO\n");
+                return;
+        }
+	gpio_direction_input(TS_PEN_PIN);
+	gpio_export(TS_PEN_PIN, 0);
+        gpio_set_debounce(TS_PEN_PIN, 0xa);
+	bosphorusI_spi1_info[1].irq = gpio_to_irq(TS_PEN_PIN);
+	
 	ret = spi_register_board_info(info, len);
 	if (ret)
 		pr_warning("failed to register board info : %d\n", ret);
@@ -812,7 +857,12 @@ static int __init bosphorusI_i2c_init(void)
 */
 
 static const short bosphorusI_lcdc_pins[] = {
-	DA850_GPIO2_8, DA850_GPIO2_15,
+	DA850_GPIO2_8, DA850_GPIO1_12,
+	-1
+};
+
+static const short bosphorusI_touchscreen_pins[] = {
+	DA850_GPIO0_13, DA850_SPI1_CS1,
 	-1
 };
 
@@ -916,6 +966,9 @@ static __init void bosphorusI_init(void)
 	char mask = 0;
 	// Bosphorus-I init START
 	pr_info("BosphorusI_init: START...\n");
+	ret = davinci_cfg_reg_list(bosphorusI_touchscreen_pins);
+	if (ret)
+		pr_warning("BosphorusI_init: touchscreen mux setup failed: %d\n",ret);
 	
 	/*
 	// I2C PIN MUX
@@ -1023,11 +1076,10 @@ static __init void bosphorusI_init(void)
 		pr_info("BosphorusI_init: Sound is now configuring\n");}	
 	da8xx_register_mcasp(0, &bosphorusI_snd_data);
 	}
-    // LCD
 
-   pr_info("Test1\n");
-    if (HAS_LCD){
-   pr_info("Test2\n");
+    // LCD
+	if (HAS_LCD){
+
 	ret = davinci_cfg_reg_list(da850_lcdcntl_pins);
 	if (ret)
 		pr_warning("BosphorusI_init: lcdcntl mux setup failed: %d\n",
@@ -1056,10 +1108,9 @@ static __init void bosphorusI_init(void)
         else 
 		pr_info("BosphorusI_init: LCD setup is successful \n");
 	}
-   pr_info("Test3\n");
 
-       if (HAS_VGA && !HAS_LCD){
-   pr_info("Test4\n");
+       if (HAS_VGA){
+
         ret = davinci_cfg_reg_list(da850_lcdcntl_pins);
 	if (ret)
 		pr_warning("BosphorusI_init: lcdcntl mux setup failed: %d\n",
@@ -1105,7 +1156,7 @@ static __init void bosphorusI_init(void)
 		pr_warning("BosphorusI_init: suspend registration failed: %d\n",
 				ret);
 
-	bosphorusI_init_spi1(bosphorusI_spi_info, ARRAY_SIZE(bosphorusI_spi_info));
+	bosphorusI_init_spi1(bosphorusI_spi1_info, ARRAY_SIZE(bosphorusI_spi1_info));
 
 	da850_register_ehrpwm(mask);
 

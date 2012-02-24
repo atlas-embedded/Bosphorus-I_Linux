@@ -204,6 +204,6 @@ decompress_kernel(unsigned long output_start, unsigned long free_mem_ptr_p,
 	do_decompress(input_data, input_data_end - input_data,
 			output_data, error);
 	putstr(" done, booting the kernel.\n");
-	putstr("Linux-2.6.37, Bosphorus-I, r1_00, 2012-01-27\n"); 
+	putstr("Linux-2.6.37, Bosphorus-I, r1_10, 2012-02-06\n"); 
 	return output_ptr;
 }

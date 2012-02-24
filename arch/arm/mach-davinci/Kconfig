@@ -264,11 +264,11 @@ config MACH_BOSPHORUS1
 menu "Select your configuration and drivers"
 	depends on MACH_BOSPHORUS1
 
-menu "Select your LCD Configuration"
+menu "Select your Display Configuration"
 choice
-   prompt "Select LCD"
-config BOSP_LCD_NONE 
-	bool "No LCD is enabled"
+   prompt "Select LCD or VGA"
+config BOSP_DISP_NONE 
+	bool "No Display is enabled"
 config  BOSP_LCD_4_3_SHARP
        bool "LCD 4.3 Sharp"
        help
@@ -277,13 +277,6 @@ config BOSP_LCD_3_5_SHARP
        bool "LCD 3.5 Sharp"
        help
         Say yes if you want to use LCD 3.5" Sharp
-endchoice
-endmenu
-menu "Select your VGA Configuration"
-choice
-   prompt "Select VGA"
-config BOSP_VGA_NONE 
-	bool "No VGA is enabled"
 config BOSP_VGA_640_480
       bool "VGA Resolution 640x480"
       help

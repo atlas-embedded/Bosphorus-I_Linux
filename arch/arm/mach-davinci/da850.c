@@ -629,19 +629,20 @@ static const struct mux_config da850_pins[] = {
 	MUX_CFG(DA850, EMA_WAIT_1,	6,	24,	15,	1,	false)
 	MUX_CFG(DA850, NEMA_CS_2,	7,	0,	15,	1,	false)
 	/* GPIO function */
-	MUX_CFG(DA850, GPIO2_4,     6, 12,  15, 8,      false)
+	MUX_CFG(DA850, GPIO2_4,         6,     12,      15,     8,      false)
 	MUX_CFG(DA850, GPIO2_6,		6,	4,	15,	8,	false)
-	MUX_CFG(DA850, GPIO2_8,		5,	28,	15,	8,	false)
-	MUX_CFG(DA850, GPIO2_15,	5,	0,	15,	8,	false)
-	MUX_CFG(DA850, GPIO4_0,		10,	28,	15,	8,	false)
-	MUX_CFG(DA850, GPIO4_1,		10,	24,	15,	8,	false)
+	MUX_CFG(DA850, GPIO2_8,		5,	28,	15,	8,	false) // LCD Power
+	MUX_CFG(DA850, GPIO4_0,		10,	28,	15,	8,	false) // MMC CD
+	MUX_CFG(DA850, GPIO4_1,		10,	24,	15,	8,	false) // MMC WP
 	MUX_CFG(DA850, GPIO1_4,		4,	12,	15,	8,	false)
-	MUX_CFG(DA850, GPIO1_5,		4,	8,	15,	8,	false)
+	MUX_CFG(DA850, GPIO1_5,		4,	8,	15,	8,	false) 
+	MUX_CFG(DA850, GPIO1_12,	2,	12,	15,	4,	false) // LCD Backlight
 	MUX_CFG(DA850, GPIO0_11,	0,	16,	15,	8,	false)
-	MUX_CFG(DA850, GPIO6_12,   13,  12, 15, 8,  false)	
-	MUX_CFG(DA850, GPIO6_13,   13,   8, 15, 8,  false)
+	MUX_CFG(DA850, GPIO6_12,        13,     12,     15, 	8,  	false)	
+	MUX_CFG(DA850, GPIO6_13,   	13,   	8, 	15, 	8,  	false)
 	MUX_CFG(DA850, RTC_ALARM,	0,	28,	15,	2,	false)
-	MUX_CFG(DA850, GPIO7_4,    17,     20,     15,     8,      false)
+	MUX_CFG(DA850, GPIO7_4,    	17,     20,     15,     8,      false)
+	MUX_CFG(DA850, GPIO0_13,	0,	8,	15,	8,	false) // Touchscreen PENIRQ
 	/* McBSP0 function */
 	MUX_CFG(DA850,	MCBSP0_CLKR,	2,	4,	15,	2,	false)
 	MUX_CFG(DA850,	MCBSP0_CLKX,	2,	8,	15,	2,	false)
@@ -712,6 +713,8 @@ static const struct mux_config da850_pins[] = {
 	MUX_CFG(DA850, ECAP1_APWM1,	1,	28,	15,	4,	false)
 	/* eCAP2 function */
 	MUX_CFG(DA850, ECAP2_APWM2,	1,	0,	15,	4,	false)
+	/* SPI1 function*/	
+	MUX_CFG(DA850, SPI1_CS1,	5,	0,	15,	1,	false) // SPI1 CS1 -- Touchscreen, GP2[15]
 #endif
 };
 
